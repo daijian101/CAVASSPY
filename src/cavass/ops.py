@@ -125,7 +125,7 @@ def read_cavass_file(input_file, first_slice=None, last_slice=None, sleep_time=0
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f'Input file {input_file} not found.')
 
-    tmp_path = os.path.expanduser('~/tmp/cavass')
+    tmp_path = os.path.join(os.path.expanduser('~'), 'tmp', 'cavass')
     if not os.path.exists(tmp_path):
         os.makedirs(tmp_path, exist_ok=True)
 

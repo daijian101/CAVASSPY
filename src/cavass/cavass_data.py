@@ -39,7 +39,7 @@ class CAVASS:
         # 0 - kilometer, 1 - meter, 2 - cm, 3 - mm, 4 - micron, 5 - sec, 6 - msec, 7 - microsec
         self.measure_unit = 3
 
-    def read(self, input_file: str | Path):
+    def read(self, input_file: str | Path, header_only: bool = False):
         tags = {}
         with open(input_file, 'rb') as f:
             while True:
@@ -101,20 +101,23 @@ class CAVASS:
                 self.axis_labels = s_tags.get(0x8015, self.axis_labels)
 
             # Read image
-            f.seek(self._data_offset)
-            if self.num_bits == 1:
-                bytes_per_slice = (self.x_dim * self.y_dim + 7) // 8
-                self._data = np.zeros((self.z_dim, self.y_dim, self.x_dim), dtype=np.uint8)
-                for i in range(self.z_dim):
-                    slice_data = f.read(bytes_per_slice)
-                    unpacked = np.unpackbits(np.frombuffer(slice_data, dtype=np.uint8))
-                    self._data[i] = unpacked[:self.x_dim * self.y_dim].reshape((self.y_dim, self.x_dim))
-            else:
-                dt = {8: np.int8 if self.is_signed else np.uint8,
-                      16: '>i2' if self.is_signed else '>u2',
-                      32: '>i4' if self.is_signed else '>u4'}.get(self.num_bits, '>i2')
-                raw = f.read(self.z_dim * self.y_dim * self.x_dim * (self.num_bits // 8))
-                self._data = np.frombuffer(raw, dtype=dt).reshape((self.z_dim, self.y_dim, self.x_dim))
+            if not header_only:
+                f.seek(self._data_offset)
+                if self.num_bits == 1:
+                    bytes_per_slice = (self.x_dim * self.y_dim + 7) // 8
+                    data = np.zeros((self.z_dim, self.y_dim, self.x_dim), dtype=np.uint8)
+                    for i in range(self.z_dim):
+                        slice_data = f.read(bytes_per_slice)
+                        unpacked = np.unpackbits(np.frombuffer(slice_data, dtype=np.uint8))
+                        data[i] = unpacked[:self.x_dim * self.y_dim].reshape((self.y_dim, self.x_dim))
+                    self._data = data
+                else:
+                    dt = {8: np.int8 if self.is_signed else np.uint8,
+                          16: '>i2' if self.is_signed else '>u2',
+                          32: '>i4' if self.is_signed else '>u4'}.get(self.num_bits, '>i2')
+                    raw = f.read(self.z_dim * self.y_dim * self.x_dim * (self.num_bits // 8))
+                    data = np.frombuffer(raw, dtype=dt).reshape((self.z_dim, self.y_dim, self.x_dim))
+                    self._data = data.copy()
 
     def get_data(self):
         return self._data
@@ -153,11 +156,16 @@ class CAVASS:
     def _write_empty_group(self, f, group_num):
         f.write(struct.pack('>HHiI', group_num, 0x0000, 4, 0))
 
-    def save(self, filepath: str):
+    def save(self, output_file: str|Path):
         if self._data is None:
-            raise ValueError("没有可保存的数据！")
+            raise ValueError('This CAVASS object doesn\'t contain any image data.')
 
-        with open(filepath, 'wb') as f:
+        output_file = Path(output_file) if isinstance(output_file, str) else output_file
+        directory = output_file.parent
+        if not directory.exists():
+            directory.mkdir(parents=True, exist_ok=True)
+
+        with open(output_file, 'wb') as f:
             f.write(struct.pack('>HHiI', 0x0000, 0x0000, 4, 12))
             f.write(struct.pack('>HHiI', 0x0000, 0x0001, 4, 0))
 
