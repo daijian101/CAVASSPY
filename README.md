@@ -8,6 +8,20 @@ This library implements medical image processing methods involving using CAVASS 
 
 `pip install cavass`
 
+## Updates
+
+### Access CAVASS format file without relying on CAVASS command
+
+```
+from cavass import CAVASS
+
+data = CAVASS()
+data.read(input_file)
+image = im0_data.get_data()
+
+data.save(output_file)
+```
+
 ## Structure
 
 **ops.py** contains codes that implement CAVASS shell commands, like reading CAVASS format files, saving CAVASS format
