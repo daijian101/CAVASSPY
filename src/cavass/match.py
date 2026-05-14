@@ -1,10 +1,10 @@
 import os
 import shutil
 
-from cavass_data._io import ensure_output_file_dir_existence
-from cavass_data.constants import CAVASS_START_INDEX
-from cavass_data.ops import matched_reslice
-from cavass_data.slice_range import get_slice_range
+from cavass._io import ensure_output_file_dir_existence
+from cavass.constants import CAVASS_START_INDEX
+from cavass.ops import matched_reslice
+from cavass.slice_range import get_slice_range
 
 
 def match(unmatched_file: str,

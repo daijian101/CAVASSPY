@@ -1,4 +1,3 @@
-import logging
 import struct
 from pathlib import Path
 
@@ -119,6 +118,8 @@ class CAVASS:
                     data = np.frombuffer(raw, dtype=dt).reshape((self.z_dim, self.y_dim, self.x_dim))
                     self._data = data.copy()
 
+        return self
+
     def get_data(self):
         return self._data
 
@@ -131,32 +132,36 @@ class CAVASS:
             self.num_bits = 16
             self.is_signed = np.issubdtype(data.dtype, np.signedinteger)
 
-    def _pack_tag(self, g, e, p):
+    @staticmethod
+    def _pack_tag(g, e, p):
         return struct.pack('>HHi', g, e, len(p)) + p
 
-    def _fstr(self, vals):
+    @staticmethod
+    def _fstr(vals):
         return '\\'.join([f'{float(v):e}' for v in vals]).encode('ascii')
 
-    def _build_group(self, group_num, tags_dict):
+    @staticmethod
+    def _build_group(group_num, tags_dict):
         payload = b''
 
         # Write Length to End to Ident group (0x0008)
         if group_num == 0x0008:
-            payload += self._pack_tag(group_num, 0x0001, struct.pack('>i', 0))
+            payload += CAVASS._pack_tag(group_num, 0x0001, struct.pack('>i', 0))
 
         for elem in sorted(tags_dict.keys()):
             val = tags_dict[elem]
             if isinstance(val, bytes) and len(val) % 2 != 0:
                 val += b' '
-            payload += self._pack_tag(group_num, elem, val)
+            payload += CAVASS._pack_tag(group_num, elem, val)
 
         grp_len_tag = struct.pack('>HHiI', group_num, 0x0000, 4, len(payload))
         return grp_len_tag + payload
 
-    def _write_empty_group(self, f, group_num):
+    @staticmethod
+    def _write_empty_group(f, group_num):
         f.write(struct.pack('>HHiI', group_num, 0x0000, 4, 0))
 
-    def save(self, output_file: str|Path):
+    def save(self, output_file: str | Path):
         if self._data is None:
             raise ValueError('This CAVASS object doesn\'t contain any image data.')
 
@@ -252,24 +257,22 @@ class CAVASS:
             f.seek(44, 0)
             f.write(struct.pack('>i', end_pos - 48))
 
+    def from_template(self, reference_cavass_obj):
+        self.dx = reference_cavass_obj.dx
+        self.dy = reference_cavass_obj.dy
+        self.dz = reference_cavass_obj.dz
 
-def from_template(reference_cavass_obj):
-    obj = CAVASS()
-    obj.dx = reference_cavass_obj.dx
-    obj.dy = reference_cavass_obj.dy
-    obj.dz = reference_cavass_obj.dz
+        self.domain = reference_cavass_obj.domain
+        self.axis_labels = reference_cavass_obj.axis_labels
 
-    obj.domain = reference_cavass_obj.domain
-    obj.axis_labels = reference_cavass_obj.axis_labels
+        self.modality = reference_cavass_obj.modality
 
-    obj.modality = reference_cavass_obj.modality
+        self.patient_name = reference_cavass_obj.patient_name
+        self.patient_id = reference_cavass_obj.patient_id
 
-    obj.patient_name = reference_cavass_obj.patient_name
-    obj.patient_id = reference_cavass_obj.patient_id
+        self.study_date = reference_cavass_obj.study_date
+        self.study_time = reference_cavass_obj.study_time
 
-    obj.study_date = reference_cavass_obj.study_date
-    obj.study_time = reference_cavass_obj.study_time
+        self.measure_unit = reference_cavass_obj.measure_unit
 
-    obj.measure_unit = reference_cavass_obj.measure_unit
-
-    return obj
+        return self

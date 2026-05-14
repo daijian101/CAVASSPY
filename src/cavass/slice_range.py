@@ -1,5 +1,5 @@
-from cavass_data._log import logger
-from cavass_data.ops import get_slice_number
+from cavass._log import logger
+from cavass.ops import get_slice_number
 
 
 def get_slice_range(partial_region_file: str, entire_region_file: str):

@@ -2,7 +2,7 @@ import nibabel as nib
 import numpy as np
 from nibabel.orientations import axcodes2ornt, ornt_transform, io_orientation, apply_orientation, inv_ornt_aff
 
-from cavass_data._io import ensure_output_file_dir_existence
+from cavass._io import ensure_output_file_dir_existence
 
 
 def save_nifti(output_file,
