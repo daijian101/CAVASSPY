@@ -4,6 +4,7 @@ blue = (0, 0, 255)
 
 yellow = (241, 191, 21)
 bright_yellow = (240, 228, 66)
+# Amber and deep teal are used for comparison
 amber = (230, 159, 0)
 purple = (147, 82, 168)
 orange = (247, 118, 11)
