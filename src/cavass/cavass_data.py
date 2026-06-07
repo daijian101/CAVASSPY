@@ -5,7 +5,7 @@ import numpy as np
 
 
 class CAVASS:
-    def __init__(self):
+    def __init__(self, input_file: str | Path = None, header_only: bool = False):
         # Dimensions
         self.z_dim = 0
         self.y_dim = 0
@@ -21,13 +21,15 @@ class CAVASS:
         self.axis_labels = b'x\\y\\z'
 
         # modality (CT, NM, MR, DS, DR, US, OT)
-        self.modality = 'OT'
+        self.modality = ''
 
         self.patient_name = ''
         self.patient_id = ''
 
         self.study_date = ''
         self.study_time = ''
+
+        self.institution = ''
 
         # Data properties
         self.num_bits = 16
@@ -37,6 +39,9 @@ class CAVASS:
 
         # 0 - kilometer, 1 - meter, 2 - cm, 3 - mm, 4 - micron, 5 - sec, 6 - msec, 7 - microsec
         self.measure_unit = 3
+
+        if input_file is not None:
+            self.read(input_file, header_only)
 
     def read(self, input_file: str | Path, header_only: bool = False):
         tags = {}
@@ -75,6 +80,7 @@ class CAVASS:
             self.study_date = get_str(0x0008, 0x0020)
             self.study_time = get_str(0x0008, 0x0030)
             self.modality = get_str(0x0008, 0x0060)
+            self.institution = get_str(0x0008, 0x0080)
             self.patient_name = get_str(0x0010, 0x0010)
             self.patient_id = get_str(0x0010, 0x0020)
 
@@ -114,23 +120,29 @@ class CAVASS:
                     dt = {8: np.int8 if self.is_signed else np.uint8,
                           16: '>i2' if self.is_signed else '>u2',
                           32: '>i4' if self.is_signed else '>u4'}.get(self.num_bits, '>i2')
-                    raw = f.read(self.z_dim * self.y_dim * self.x_dim * (self.num_bits // 8))
+                    raw = f.read(self.z_dim * self.x_dim * self.y_dim * (self.num_bits // 8))
                     data = np.frombuffer(raw, dtype=dt).reshape((self.z_dim, self.y_dim, self.x_dim))
                     self._data = data.copy()
 
         return self
 
-    def get_data(self):
+    @property
+    def data(self):
         return self._data
 
-    def set_data(self, data: np.ndarray):
-        self._data = data
-        self.z_dim, self.y_dim, self.x_dim = data.shape
-        if data.dtype == bool or (data.max() <= 1 and data.min() >= 0):
+    @data.setter
+    def data(self, value: np.ndarray):
+        self._data = value
+        self.z_dim, self.y_dim, self.x_dim = value.shape
+        if value.dtype == bool or (value.max() <= 1 and value.min() >= 0):
             self.num_bits, self.is_signed = 1, False
         else:
             self.num_bits = 16
-            self.is_signed = np.issubdtype(data.dtype, np.signedinteger)
+            self.is_signed = np.issubdtype(value.dtype, np.signedinteger)
+
+    @property
+    def voxel_spacing(self):
+        return self.dz, self.dy, self.dx
 
     @staticmethod
     def _pack_tag(g, e, p):
@@ -182,6 +194,7 @@ class CAVASS:
             if self.study_date: ident_tags[0x0020] = self.study_date.encode('ascii')
             if self.study_time: ident_tags[0x0030] = self.study_time.encode('ascii')
             if self.modality:   ident_tags[0x0060] = self.modality.encode('ascii')
+            if self.institution: ident_tags[0x0080] = self.institution.encode('ascii')
             f.write(self._build_group(0x0008, ident_tags))
 
             self._write_empty_group(f, 0x0009)
