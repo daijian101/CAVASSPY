@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import os
 import struct
 from pathlib import Path
 
@@ -270,7 +273,15 @@ class CAVASS:
             f.seek(44, 0)
             f.write(struct.pack('>i', end_pos - 48))
 
-    def from_template(self, reference_cavass_obj):
+    def from_template(self, reference_cavass_obj_or_file: CAVASS | str | Path):
+
+        if isinstance(reference_cavass_obj_or_file, CAVASS):
+            reference_cavass_obj = reference_cavass_obj_or_file
+        elif isinstance(reference_cavass_obj_or_file, str | Path):
+            reference_cavass_obj = CAVASS(reference_cavass_obj_or_file, header_only=True)
+        else:
+            raise ValueError('Unsupported type of reference CAVASS object or file.')
+
         self.dx = reference_cavass_obj.dx
         self.dy = reference_cavass_obj.dy
         self.dz = reference_cavass_obj.dz
@@ -287,5 +298,6 @@ class CAVASS:
         self.study_time = reference_cavass_obj.study_time
 
         self.measure_unit = reference_cavass_obj.measure_unit
+        self.institution = reference_cavass_obj.institution
 
         return self
