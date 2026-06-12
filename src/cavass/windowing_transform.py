@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def windowing_transform(input_data, center, width, ymin=0, ymax=255, invert=False):
+def apply_windowing(input_data, center, width, ymin=0, ymax=255, invert=False):
     """
     DICOM PS3.3 C.11.2.1.2:
     Pseudo-code:
@@ -28,12 +28,12 @@ def windowing_transform(input_data, center, width, ymin=0, ymax=255, invert=Fals
 
 
 def cavass_soft_tissue_windowing(input_data):
-    return windowing_transform(input_data, 1000, 500)
+    return apply_windowing(input_data, 1000, 500)
 
 
 def cavass_bone_windowing(input_data):
-    return windowing_transform(input_data, 2000, 4000)
+    return apply_windowing(input_data, 2000, 4000)
 
 
 def cavass_pet_windowing(input_data):
-    return windowing_transform(input_data, 1200, 3500, invert=True)
+    return apply_windowing(input_data, 1200, 3500, invert=True)
