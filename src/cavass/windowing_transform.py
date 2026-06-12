@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def apply_windowing(input_data, center, width, ymin=0, ymax=255, invert=False):
+def apply_windowing(input_data, window_level, window_width, ymin=0, ymax=255, invert=False):
     """
     DICOM PS3.3 C.11.2.1.2:
     Pseudo-code:
@@ -9,14 +9,14 @@ def apply_windowing(input_data, center, width, ymin=0, ymax=255, invert=False):
         else if (x > c - 0.5 + (w-1) /2), then y = ymax
         else y = ((x - (c - 0.5)) / (w-1) + 0.5) * (ymax- ymin) + ymin
     """
-    width = max(float(width), 1.0)
-    center = float(center)
+    window_width = max(float(window_width), 1.0)
+    window_level = float(window_level)
 
-    if width == 1.0:
-        output = np.where(input_data <= center - 0.5, ymin, ymax)
+    if window_width == 1.0:
+        output = np.where(input_data <= window_level - 0.5, ymin, ymax)
     else:
         float_data = input_data.astype(np.float32)
-        output = ((float_data - (center - 0.5)) / (width - 1.0) + 0.5) * (ymax - ymin) + ymin
+        output = ((float_data - (window_level - 0.5)) / (window_width - 1.0) + 0.5) * (ymax - ymin) + ymin
         output = np.clip(output, ymin, ymax)
 
     output = output.astype(np.uint8)
