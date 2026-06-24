@@ -273,7 +273,8 @@ class CAVASS:
             f.seek(44, 0)
             f.write(struct.pack('>i', end_pos - 48))
 
-    def from_template(self, reference_cavass_obj_or_file: CAVASS | str | Path):
+    @staticmethod
+    def from_template(reference_cavass_obj_or_file: CAVASS | str | Path):
 
         if isinstance(reference_cavass_obj_or_file, CAVASS):
             reference_cavass_obj = reference_cavass_obj_or_file
@@ -282,22 +283,23 @@ class CAVASS:
         else:
             raise ValueError('Unsupported type of reference CAVASS object or file.')
 
-        self.dx = reference_cavass_obj.dx
-        self.dy = reference_cavass_obj.dy
-        self.dz = reference_cavass_obj.dz
+        target = CAVASS()
+        target.dx = reference_cavass_obj.dx
+        target.dy = reference_cavass_obj.dy
+        target.dz = reference_cavass_obj.dz
 
-        self.domain = reference_cavass_obj.domain
-        self.axis_labels = reference_cavass_obj.axis_labels
+        target.domain = reference_cavass_obj.domain
+        target.axis_labels = reference_cavass_obj.axis_labels
 
-        self.modality = reference_cavass_obj.modality
+        target.modality = reference_cavass_obj.modality
 
-        self.patient_name = reference_cavass_obj.patient_name
-        self.patient_id = reference_cavass_obj.patient_id
+        target.patient_name = reference_cavass_obj.patient_name
+        target.patient_id = reference_cavass_obj.patient_id
 
-        self.study_date = reference_cavass_obj.study_date
-        self.study_time = reference_cavass_obj.study_time
+        target.study_date = reference_cavass_obj.study_date
+        target.study_time = reference_cavass_obj.study_time
 
-        self.measure_unit = reference_cavass_obj.measure_unit
-        self.institution = reference_cavass_obj.institution
+        target.measure_unit = reference_cavass_obj.measure_unit
+        target.institution = reference_cavass_obj.institution
 
-        return self
+        return target

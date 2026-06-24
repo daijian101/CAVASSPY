@@ -17,7 +17,7 @@ from cavass import CAVASS
 
 data = CAVASS()
 data.read(input_file)
-image = im0_data.get_data()
+image = im0_data.data
 
 data.save(output_file)
 ```
