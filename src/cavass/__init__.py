@@ -3,3 +3,4 @@ from .windowing_transform import apply_windowing
 from .windowing_transform import cavass_soft_tissue_windowing
 from .windowing_transform import cavass_bone_windowing
 from .windowing_transform import cavass_pet_windowing
+from .overlay import overlay
