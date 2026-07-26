@@ -8,7 +8,7 @@ import numpy as np
 
 
 class CAVASS:
-    def __init__(self, input_file: str | Path = None, header_only: bool = False):
+    def __init__(self):
         # Dimensions
         self.z_dim = 0
         self.y_dim = 0
@@ -42,9 +42,6 @@ class CAVASS:
 
         # 0 - kilometer, 1 - meter, 2 - cm, 3 - mm, 4 - micron, 5 - sec, 6 - msec, 7 - microsec
         self.measure_unit = 3
-
-        if input_file is not None:
-            self.read(input_file, header_only)
 
     def read(self, input_file: str | Path, header_only: bool = False):
         tags = {}
