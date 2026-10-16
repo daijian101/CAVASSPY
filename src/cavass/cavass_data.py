@@ -44,6 +44,8 @@ class CAVASS:
         self.measure_unit = 3
 
     def read(self, input_file: str | Path, header_only: bool = False):
+        if not os.path.isfile(input_file):
+            raise FileNotFoundError(input_file)
         tags = {}
         with open(input_file, 'rb') as f:
             while True:
