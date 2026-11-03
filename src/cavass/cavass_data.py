@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import struct
 from pathlib import Path
-
+from cavass._log import logger
 import numpy as np
 
 
@@ -177,7 +177,7 @@ class CAVASS:
 
     def save(self, output_file: str | Path):
         if self._data is None:
-            raise ValueError('This CAVASS object doesn\'t contain any image data.')
+            logger.warning(f'This CAVASS object doesn\'t contain any image data: {output_file}.')
 
         output_file = Path(output_file) if isinstance(output_file, str) else output_file
         directory = output_file.parent
@@ -274,11 +274,10 @@ class CAVASS:
 
     @staticmethod
     def from_template(reference_cavass_obj_or_file: CAVASS | str | Path):
-
         if isinstance(reference_cavass_obj_or_file, CAVASS):
             reference_cavass_obj = reference_cavass_obj_or_file
         elif isinstance(reference_cavass_obj_or_file, str | Path):
-            reference_cavass_obj = CAVASS(reference_cavass_obj_or_file, header_only=True)
+            reference_cavass_obj = CAVASS().read(reference_cavass_obj_or_file, header_only=True)
         else:
             raise ValueError('Unsupported type of reference CAVASS object or file.')
 
