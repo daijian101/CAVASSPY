@@ -1,9 +1,10 @@
 import os
 import shutil
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
-
+from nibabel import Nifti1Image
 from pydicom.uid import generate_uid
 
 from cavass._log import logger
@@ -25,22 +26,13 @@ def get_patient_orientation_from_nifti_affine(I_direction, J_direction):
     return axis
 
 
-def nifti2dicom(input_nifti_file, output_dicom_dir, modality: str, signed: int = 1, orientation: str | None = None,
-                overwrite=False, **kwargs):
-    if not os.path.isfile(input_nifti_file):
-        raise FileNotFoundError(f'Input NIfTI file {input_nifti_file} not found.')
-    nifti_image = nib.load(input_nifti_file)
-    nifti_obj2dicom(input_nifti_image=nifti_image, output_dicom_dir=output_dicom_dir, modality=modality, signed=signed,
-                    orientation=orientation, overwrite=overwrite, **kwargs)
-
-
-def nifti_obj2dicom(input_nifti_image, output_dicom_dir, modality: str, signed: int = 1,
-                    orientation:str ='PLS',overwrite=False, **kwargs):
+def nifti_to_dicom(input_nifti: str | Path | Nifti1Image, output_dicom_dir, modality: str, signed: int = 1,
+                   orientation: str = 'PLS', overwrite=False, **kwargs):
     """
     Convert NIfTI image to DICOM image series.
 
     Args:
-        input_nifti_image ():
+        input_nifti (str or Path or Nifti1Image): NIfTI file or object.
         output_dicom_dir (str):
         modality (str):
         signed (int): 0: unsigned integer, 1: signed integer.
@@ -50,6 +42,11 @@ def nifti_obj2dicom(input_nifti_image, output_dicom_dir, modality: str, signed: 
     Returns:
 
     """
+    if not isinstance(input_nifti, Nifti1Image):
+        if not os.path.isfile(input_nifti):
+            raise FileNotFoundError(f'Input NIfTI file {input_nifti} not found.')
+        input_nifti = nib.load(input_nifti)
+
     if os.path.exists(output_dicom_dir):
         if overwrite:
             logger.info(f'Overwrite {output_dicom_dir} as it already exists.')
@@ -64,13 +61,13 @@ def nifti_obj2dicom(input_nifti_image, output_dicom_dir, modality: str, signed: 
     attrs['FrameOfReferenceUID'] = generate_uid()
     attrs['ImageType'] = ['SECONDARY', 'DERIVED']
 
-    data = reorient(input_nifti_image, orientation=orientation)
+    data = reorient(input_nifti, orientation=orientation)
     header = data.header
     img = data.get_fdata()
 
     coordinate_system_transform = np.diag([-1, -1, 1, 1])
     dicom_affine = coordinate_system_transform @ data.affine
-    
+
     i_vec = dicom_affine[:3, 1]
     j_vec = dicom_affine[:3, 0]
     k_vec = dicom_affine[:3, 2]

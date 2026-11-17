@@ -5,38 +5,43 @@ from uuid import uuid1
 
 import nibabel as nib
 import numpy as np
+from nibabel import Nifti1Image
 
 from cavass._io import ensure_output_file_dir_existence
-from cavass.medimgconvert.dicom_cavass import dicom2cavass
-from cavass.medimgconvert.dicom_nifti import nifti_obj2dicom
+from cavass.medimgconvert.dicom_nifti import nifti_to_dicom
 from cavass.nifti import save_nifti, reorient
-from cavass.ops import get_voxel_spacing, read_cavass_file, save_cavass_file
+from cavass.ops import get_voxel_spacing, read_cavass_file, save_cavass_file, from_dicom
 from cavass.utils import one_hot
 
 
-def nifti_obj2cavass(input_nifti_image, output_file, modality, offset=0, pose_reference_file=None, **kwargs):
+def nifti_to_cavass(input_nifti: str | Path | Nifti1Image, output_file, modality, offset=0,
+                    pose_reference_file=None, **kwargs):
     """
     Convert NIfTI image to cavass image.
 
     Args:
-        input_nifti_image ():
+        input_nifti (str or Path or Nifti1Image):
         output_file (str):
         modality (Modality):
         offset (int, optional, default=0):
         pose_reference_file (str, optional, default=None):
     """
-
     if pose_reference_file is not None:
         if not os.path.isfile(pose_reference_file):
             raise FileNotFoundError(f'Copy pose file {pose_reference_file} not found.')
+
+    if not isinstance(input_nifti, Nifti1Image):
+        if not os.path.isfile(input_nifti):
+            raise FileNotFoundError(f'Input NIfTI file {input_nifti} not found.')
+        input_nifti = nib.load(input_nifti)
 
     made_output_dir, output_dir = ensure_output_file_dir_existence(output_file)
 
     tmp_dicom_dir = os.path.join(output_dir, f'{uuid1()}')
     try:
-        r1 = nifti_obj2dicom(input_nifti_image, tmp_dicom_dir, modality=modality, orientation='PLS', overwrite=True,
-                             **kwargs)
-        r2 = dicom2cavass(tmp_dicom_dir, output_file, offset, pose_reference_file)
+        r1 = nifti_to_dicom(input_nifti, tmp_dicom_dir, modality=modality, orientation='PLS', overwrite=True,
+                            **kwargs)
+        r2 = from_dicom(tmp_dicom_dir, output_file, offset, pose_reference_file)
     except Exception as e:
         if made_output_dir and os.path.isdir(output_dir):
             shutil.rmtree(output_dir)
@@ -50,26 +55,8 @@ def nifti_obj2cavass(input_nifti_image, output_file, modality, offset=0, pose_re
     return r1, r2
 
 
-def nifti2cavass(input_nifti_file, output_file, modality, offset=0, pose_reference_file=None, **kwargs):
-    """
-    Convert NIfTI image to cavass image.
-
-    Args:
-        input_nifti_file (str):
-        output_file (str):
-        modality (Modality):
-        offset (int, optional, default=0):
-        pose_reference_file (str, optional, default=None):
-    """
-
-    if not os.path.isfile(input_nifti_file):
-        raise FileNotFoundError(f'Input NIfTI file {input_nifti_file} not found.')
-    nifti_image = nib.load(input_nifti_file)
-    return nifti_obj2cavass(nifti_image, output_file, modality, offset, pose_reference_file, **kwargs)
-
-
-def nifti_label2cavass(input_nifti_file:str| Path, output_dir, objects, study_name: str|None = None,
-                       modality='CT', discard_background=True, pose_reference_file=None, with_dicom=False):
+def nifti_label_to_cavass(input_nifti_file: str | Path, output_dir, objects, study_name: str | None = None,
+                          modality='CT', discard_background=True, pose_reference_file=None, with_dicom=False):
     """
     Convert NIfTI format segmentation file to cavass BIM format file. A NIfTI file in where contains arbitrary categories
     of objects will convert to multiple CAVASS BIM files, which matches to the number of object categories.
@@ -124,14 +111,14 @@ def nifti_label2cavass(input_nifti_file:str| Path, output_dir, objects, study_na
 
         output_file = os.path.join(output_dir, obj, f'{study_name}_{obj}.BIM')
         if with_dicom:
-            nifti_obj2cavass(nifti_label_image, output_file, modality, pose_reference_file=pose_reference_file)
+            nifti_to_cavass(nifti_label_image, output_file, modality, pose_reference_file=pose_reference_file)
         else:
             nifti_label_image = reorient(nifti_label_image, orientation='PLS')
             data = nifti_label_image.get_fdata().astype(np.uint8)
             save_cavass_file(output_file, data, binary=True, pose_reference_file=pose_reference_file)
 
 
-def cavass2nifti(input_file, output_file, orientation='ARI'):
+def cavass_to_nifti(input_file, output_file, orientation='ARI'):
     """
     Convert cavass IM0 and BIM formats to NIfTI.
 
