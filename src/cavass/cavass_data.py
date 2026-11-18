@@ -117,14 +117,14 @@ class CAVASS:
                         slice_data = f.read(bytes_per_slice)
                         unpacked = np.unpackbits(np.frombuffer(slice_data, dtype=np.uint8))
                         data[i] = unpacked[:self.x_dim * self.y_dim].reshape((self.y_dim, self.x_dim))
-                    self._data = data
+                    self.data = data
                 else:
                     dt = {8: np.int8 if self.is_signed else np.uint8,
                           16: '>i2' if self.is_signed else '>u2',
                           32: '>i4' if self.is_signed else '>u4'}.get(self.num_bits, '>i2')
                     raw = f.read(self.z_dim * self.x_dim * self.y_dim * (self.num_bits // 8))
                     data = np.frombuffer(raw, dtype=dt).reshape((self.z_dim, self.y_dim, self.x_dim))
-                    self._data = data.copy()
+                    self.data = data.copy()
 
         return self
 
@@ -176,7 +176,7 @@ class CAVASS:
         f.write(struct.pack('>HHiI', group_num, 0x0000, 4, 0))
 
     def save(self, output_file: str | Path):
-        if self._data is None:
+        if self.data is None:
             logger.warning(f'This CAVASS object doesn\'t contain any image data: {output_file}.')
 
         output_file = Path(output_file) if isinstance(output_file, str) else output_file
@@ -222,8 +222,8 @@ class CAVASS:
                 0x8020: struct.pack('>hhh', 3, 3, 3),
                 0x8030: struct.pack('>h', 1),
                 0x8035: struct.pack('>h', 0),
-                0x8040: self._fstr([float(self._data.min())]),
-                0x8050: self._fstr([float(self._data.max())]),
+                0x8040: self._fstr([float(self.data.min())]),
+                0x8050: self._fstr([float(self.data.max())]),
                 0x8060: struct.pack('>h', 1),
                 0x8070: struct.pack('>h', 1 if self.is_signed else 0),
                 0x8080: struct.pack('>h', self.num_bits),
@@ -246,7 +246,7 @@ class CAVASS:
                 bytes_per_slice = (self.x_dim * self.y_dim + 7) // 8
                 pixel_bytes = bytearray()
                 for i in range(self.z_dim):
-                    flat_slice = self._data[i].flatten()
+                    flat_slice = self.data[i].flatten()
                     pad_len = (bytes_per_slice * 8) - len(flat_slice)
                     if pad_len > 0: flat_slice = np.pad(flat_slice, (0, pad_len), 'constant', constant_values=0)
                     pixel_bytes.extend(np.packbits(flat_slice).tobytes())
@@ -255,7 +255,7 @@ class CAVASS:
                 dt = (
                     f'>i{self.num_bits // 8}' if self.is_signed else f'>u{self.num_bits // 8}') if self.num_bits > 8 else (
                     'int8' if self.is_signed else 'uint8')
-                pixel_data = self._data.astype(dt).tobytes()
+                pixel_data = self.data.astype(dt).tobytes()
 
             pix_len = len(pixel_data)
             f.write(struct.pack('>HHiI', 0x7FE0, 0x0000, 4, pix_len + 8))
